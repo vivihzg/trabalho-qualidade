@@ -85,6 +85,10 @@ export default function PostCard({
           marginTop: "1rem",
         }}
       >
+        <div style={{ display: "flex", gap: "1rem", marginRight: "1rem" }}>
+            <span>👍 {post.reactions.likes}</span>
+            <span>👎 {post.reactions.dislikes}</span>
+        </div>
         <button
           onClick={handleLike}
           disabled={isLoading}
