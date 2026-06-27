@@ -61,6 +61,10 @@ describe("PostCard", () => {
     title: "Título de Teste",
     body: "Corpo do post de teste",
     liked: false,
+    reactions: {
+      likes: 10,
+      dislikes: 2
+    },
   };
 
   beforeEach(() => {
