@@ -29,9 +29,10 @@ test('E2E - Verificando erros de formulário não preenchido', async ({page}) =>
 });
 
 test('API - cadastro com sucesso', async ({ request }) => {
+  const email = `teste_${Date.now()}@gmail.com`;
   const response = await request.post('http://localhost:8080/auth/signup', {
     data: {
-      email: `testebb@gmail.com`,
+      email,
       password: 'Senha@1234'
     }
   });
@@ -45,9 +46,14 @@ test('API - cadastro com sucesso', async ({ request }) => {
 });
 
 test('API - email duplicado', async ({ request }) => {
+  const email = `teste_${Date.now()}@gmail.com`;
+  
+  await request.post('http://localhost:8080/auth/signup', {
+    data: { email, password: 'Senha@1234' }
+  });
 
   const response = await request.post('http://localhost:8080/auth/signup', {
-    data: { email: `testeapi2@gmail.com`, password: 'Senha@1234' }
+    data: { email, password: 'Senha@1234' }
   });
 
   expect(response.status()).toBe(409);

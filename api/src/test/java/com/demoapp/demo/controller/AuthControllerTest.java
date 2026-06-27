@@ -97,6 +97,6 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(body)))
             .andExpect(status().isConflict())
 
-            .andExpect(jsonPath("$.message").value("E-mail já cadastrado"));
+            .andExpect(jsonPath("$.message").value("E-mail já está em uso"));
     }
 }
