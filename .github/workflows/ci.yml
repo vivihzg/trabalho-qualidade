@@ -1,0 +1,105 @@
+name: Automação
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: social_media
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: configurando java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Configurando node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Instalando dep do cliet
+        working-directory: ./client
+        run: npm install
+
+      - name: instalando dep do playwright
+        working-directory: ./tests
+        run: |
+          npm install
+          npx playwright install -- with-deps chromium
+      
+      - name: Rodando testes da api
+        working-directory: ./api
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/social_media
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+        run: ./mvnw test
+
+      - name: Rodando testes do client
+        working-directory: ./client
+        run: npm test -- --watchAll=false --passWithNoTests
+
+      - name: iniciar api
+        working-directory: ./api
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/social_media
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+        run: ./mvnw spring-boot:run &
+      
+      - name: aguardar api estar pronta
+        run: |
+          echo "Aguardando API na porta 8080..."
+          for i in $(seq 1 30); do
+            curl -s http://localhost:8080/posts?limit=1 && echo "API pronta!" && exit 0
+            echo "Tentativa $i... aguardando"
+            sleep 5
+          done
+          echo "API não respondeu a tempo" && exit 1
+
+      - name: iniciar client
+        working-directory: ./client
+        run: npm run dev &
+      
+      - name: aguardar client estar pronto
+        run: |
+          echo "Aguardando client na porta 3000..."
+          for i in $(seq 1 20); do
+            curl -s http://localhost:3000 && echo "Client pronto!" && exit 0
+            echo "Tentativa $i... aguardando"
+            sleep 5
+          done
+          echo "Client não respondeu a tempo" && exit 1
+      
+      - name: testes playwright
+        working-directory: ./tests
+        run: npx playwright test
+      
+      - name: relatório em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tests/playwright-report/
+          retention-days: 7
